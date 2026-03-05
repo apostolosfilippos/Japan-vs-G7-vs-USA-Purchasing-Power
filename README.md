@@ -1,37 +1,71 @@
-Comparative Economic Analysis: Japan vs G7 (2000 - 2024)
+🇯🇵 Japan vs G7: Purchasing Power Analysis
 
-Data Modeling & Visualization in Power BI
-📌 Project Overview
+Analysis of Japan’s purchasing power 2000-2023 using Databricks (SQL) and Power BI.
 
-This project provides a comparative analysis of Japan’s economy relative to the G7, focusing on price levels, wages, and purchasing power. The methodology is inspired by the Mantes-Marinakis Report (2025), emphasizing the use of Purchasing Power Parities (PPP) and Constant Prices to draw objective conclusions about economic trends, similar to the divergence analysis used for the Greek economy.
-📊 Data Structure & Modeling
+📌 The Core Insight
+   
+    Japan: Low Inflation + Stagnant Wages = +15% Growth
+    G7 Average: big Inflation but Wage Growth = +40% Growth
+    Conclusion: Japan had less growth dispite much lower inflation
 
-The report is built on a Star Schema to ensure data integrity and optimal performance:
+🛠️ Tech Stack
 
-   Fact Tables: Wages, Disposable Income, Actual Consumption, Prices Rates.
-   Dimension Tables: Countries, Years.
+   Databricks SQL (Medallion Architecture)
+   Visualization: Power BI
+   Data Sources: World Bank & OECD
 
-📈 Key Metrics Analyzed
+ SQL Pipeline
+1. Bronze Layer (Raw Ingestion)
 
-   Price Level Index (PLI): Calculated as the ratio of PPP to market exchange rates. It measures local affordability and identifies currency overvaluation or undervaluation.
-   Real Wages vs. Nominal: Evaluation of labor income adjusted for local purchasing power to reveal the true value of earnings.
-   Actual Individual Consumption (AIC): A primary measure of material welfare and household living standards, independent of GDP fluctuations.
+    bronze_g7: Raw data loaded directly from source.
 
-🔍 Key Insights
+2. Silver Layer (Refinement)
 
-   Price Divergence: Analysis of how Japan's price levels have diverged from the G7 average, becoming significantly more "affordable" over the last two decades.
-   Purchasing Power: Evaluating if household income has kept pace with the cost of living using PPS (Purchasing Power Standards).
-   Welfare Trends: Using AIC to assess whether living standards have remained stable despite the devaluation of the Yen.
+    silver_cpi: Cleaned and standardized inflation metrics.
+    silver_ppp: Normalized Purchasing Power Parity values.
 
-🛠 Methodology & Data Sources
+3. Gold Layer (Final Analytics Table)
 
-All data was retrieved from the OECD Data Explorer using the following datasets:
+    gold_g7: The final table used for Power BI. This stage filters bronze_g7 for G7 countries and joins it with the Silver tables to create the final dataset and the G7 Average.
 
-   Average Annual Wages (DSD_EARNINGS@AV_AN_WAGE)
-   Annual GDP and Expenditure (DSD_NAMAIN10@DF_TABLE1) for AIC.
-   Annual National Disposable Income (DSD_NAMAIN10@DF_TABLE2)
+DROP TABLE IF EXISTS gold_g7;
 
-   Purchasing Power Parities & Exchange Rates (DSD_PPP@DF_PPP_INDICATORS)
+CREATE TABLE gold_g7 AS
 
-Data Processing:
-To ensure a scientifically sound comparison, all financial values were normalized using PPPs instead of nominal exchange rates. All series use Constant Prices to account for inflation. The Price Level Index was manually derived by dividing the PPP for actual individual consumption by the annual average exchange rate, following standard OECD statistical guidelines.
+SELECT
+  silver_g7.country,
+  silver_g7.year,
+  silver_g7.income_per_capita,
+  silver_cpi.cpi,
+  silver_ppp.ppp
+FROM silver_g7
+LEFT JOIN silver_cpi 
+  ON silver_g7.country = silver_cpi.country 
+  AND silver_g7.year = silver_cpi.year
+LEFT JOIN silver_ppp 
+  ON silver_g7.country = silver_ppp.country 
+  AND silver_g7.year = silver_ppp.year
+WHERE silver_g7.country IN ('USA', 'JPN')
+
+UNION ALL
+
+SELECT
+  'G7' AS country,
+  silver_g7.year,
+  AVG(silver_g7.income_per_capita) AS income_per_capita,
+  AVG(silver_cpi.cpi) AS cpi,
+  AVG(silver_ppp.ppp) AS ppp
+FROM silver_g7
+LEFT JOIN silver_cpi 
+  ON silver_g7.country = silver_cpi.country 
+  AND silver_g7.year = silver_cpi.year
+LEFT JOIN silver_ppp 
+  ON silver_g7.country = silver_ppp.country 
+  AND silver_g7.year = silver_ppp.year
+GROUP BY silver_g7.year;
+
+📊 Key Metrics (2000-2023)
+Metric	Japan	USA	G7 Avg
+Purchasing Power (2023)	$51K	$82K	$64K
+23-Year Growth	+15%	+60%	+40%
+Avg Inflation (CPI)	-0.5%	+2.8%	+2.5%
