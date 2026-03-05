@@ -8,6 +8,8 @@ Analysis of Japan’s purchasing power 2000-2023 using Databricks (SQL) and Powe
     G7 Average: big Inflation but Wage Growth = +40% Growth
     Conclusion: Japan had less growth dispite much lower inflation
 
+![g7](https://github.com/user-attachments/assets/e744fb2b-4e64-4a30-83e4-8d1413d754eb)    
+
 🛠️ Tech Stack
 
    Databricks SQL (Medallion Architecture)
